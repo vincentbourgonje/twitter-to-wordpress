@@ -365,6 +365,10 @@
         return $pctw_feed[0]->id_str;
 	}
 
+	function pctw_import_new_tweets() {
+		pctw_log('Importing new tweets');
+	}
+
 	/**
 	 * Delete a tweet
 	 * pctw_delete_tweet()

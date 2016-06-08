@@ -87,13 +87,13 @@
 	function save_taxonomy_custom_fields( $term_id ) {  
 	    
 	    if ( isset( $_POST['pctw_term_meta_sortorder'] ) ) {  
-	    	add_term_meta($term_id, 'pctw_term_meta_sortorder', trim($_POST['pctw_term_meta_sortorder']), false);
+	    	update_term_meta($term_id, 'pctw_term_meta_sortorder', trim($_POST['pctw_term_meta_sortorder']));
 	    }
 	    if ( isset( $_POST['pctw_term_meta_date_from'] ) ) {  
-	    	add_term_meta($term_id, 'pctw_term_meta_date_from', trim($_POST['pctw_term_meta_date_from']), false);
+	    	update_term_meta($term_id, 'pctw_term_meta_date_from', trim($_POST['pctw_term_meta_date_from']));
 	    }
 	    if ( isset( $_POST['pctw_term_meta_date_until'] ) ) {  
-	    	add_term_meta($term_id, 'pctw_term_meta_date_until', trim($_POST['pctw_term_meta_date_until']), false);
+	    	update_term_meta($term_id, 'pctw_term_meta_date_until', trim($_POST['pctw_term_meta_date_until']));
 	    }
 
 	}  	
@@ -101,14 +101,24 @@
 	// Helper function to write the actual HTML
 	function pctw_add_meta_field($fieldtype, $fieldlabel, $fieldid, $fieldvalue, $fielddesc) {
 
-		$return_html = '';	
+		$return_html 	= '';	
+		$date_parms 	= '';
 
 		$return_html .= '<tr class="form-field">';
 		$return_html .= '<th scope="row" valign="top">';
 		$return_html .= '<label for="presenter_id">' . $fieldlabel . '</label>';
 		$return_html .= '</th>';
 		$return_html .= '<td>';
-		$return_html .= '<input type="' . $fieldtype . '" name="' . $fieldid . '" id="' . $fieldid . '" size="25" style="width:60%;" value="' . $fieldvalue . '">';
+
+		// prepare extra info when is date
+		$date_parms .= ' class="datepicker-here"';
+		$date_parms .= ' data-language="en"';
+		$date_parms .= ' data-position="top left"';
+		$date_parms .= ' data-date-format="yyyy-mm-dd"';
+
+		if($fieldtype !== 'date') { $date_parms = ''; }
+
+		$return_html .= '<input type="' . $fieldtype . '" name="' . $fieldid . '" id="' . $fieldid . '" size="25" style="width:60%;" value="' . $fieldvalue . '"' . $date_parms . '>';
 		if (strlen(trim($fielddesc))>0) {
 			$return_html .= '<br><span class="description">' . $fielddesc . '</span>';
 		}
