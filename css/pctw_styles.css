@@ -1,0 +1,46 @@
+.pctw_year {
+	display: block; text-align: center; font-weight: 800; font-size: 150%; width: 100%; flex: 1;
+}
+.pctw_category_name {
+	display: block; 
+	text-align: center; 
+	font-weight: 800; 
+	font-size: 120%; 
+	width: 100%; 
+	flex: 1; background-color: #efefef; height: auto; vertical-align: middle; padding: 10px;
+}
+
+.pctw_tweetslist {
+	display: flex;
+	flex-wrap: wrap;
+	flex-direction: row;
+}
+
+.pctw_tweet {
+	flex: 1;
+	width: 29%;
+	max-width: 29%;
+	flex-grow: 1;
+	flex-basis: 29%;
+	margin: 2%;
+
+	border: 1px solid #926C9E;
+	padding: 3px;
+	background-color: #f5f5f5;
+}
+.pctw_tweet > a > img.tweetimage { width: 100%; height: auto; }
+.pctw_tweet > p { padding: 10px; }
+
+@media only screen and (max-width: 768px) {
+	.pctw_tweet {
+		max-width: 46%;
+		flex-basis: 46%;
+	}
+}
+
+@media only screen and (max-width: 481px) {
+	.pctw_tweet {
+		max-width: 96%;
+		flex-basis: 96%;
+	}
+}
