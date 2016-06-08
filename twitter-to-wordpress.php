@@ -80,6 +80,9 @@
 	add_action( 'trip_edit_form_fields', 'trip_taxonomy_custom_fields', 10, 2 );
 	add_action( 'edited_trip', 'save_taxonomy_custom_fields', 10, 2 );
 
+	// cron actions
+	add_action('pctw_cron_hook', 'pctw_import_new_tweets');
+
 /*---------------------------------------------------------------------------------------------------
 	AJAX CALLS
 ---------------------------------------------------------------------------------------------------*/
