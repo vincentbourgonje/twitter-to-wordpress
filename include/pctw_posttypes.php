@@ -36,7 +36,7 @@
 				'has_archive' => 'tweets', /* you can rename the slug here */
 				'capability_type' => 'post',
 				'hierarchical' => false,
-				//'taxonomies' => array('category','post_tag'),
+				'taxonomies' => array('post_tag'),
 				/* the next one is important, it tells what's enabled in the post editor */
 				'supports' => array( 'title', 'author', 'thumbnail', 'comments', 'sticky')
 			) /* end of options */
