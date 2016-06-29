@@ -23,7 +23,7 @@
 			$home_coords = get_option('pctw_setting_home_coords',false);
 			if ($home_coords !== false) {
 				_e('Current coordinates:','pctw');
-				echo ' <a href="https://www.google.nl/maps/@' . $home_coords . ',17z" target="_blank">' . $home_coords . '</a>';
+				echo ' <a href="https://maps.google.nl?q=' . $home_coords . '&zoom=17" target="_blank">' . $home_coords . '</a>';
 			}
 		?>
 		<table class="form-table">

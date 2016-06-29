@@ -65,13 +65,12 @@
 	ACTIONS & HOOKS
 ---------------------------------------------------------------------------------------------------*/	
 	register_activation_hook( __FILE__, 'pctw_activate' );
-	register_deactivation_hook( __FILE__, 'pctw_deactivate' );	
+	register_deactivation_hook( __FILE__, 'pctw_deactivate' );
 
 	add_action( 'admin_enqueue_scripts', 'pctw_admin_load_scripts' );
 	add_action( 'wp_enqueue_scripts', 'pctw_app_scripts' );	
 
 	add_action( 'init', 'register_pctw_posttypes');	 // register posttypes
-//	add_action( 'init', 'pctw_init_functions');		
 
 	// Translations
 	load_plugin_textdomain( 'plcr', false, plugin_basename( dirname( __FILE__ ) ) . '/languages' );
@@ -81,7 +80,8 @@
 	add_action( 'edited_trip', 'save_taxonomy_custom_fields', 10, 2 );
 
 	// cron actions
-	add_action('pctw_cron_hook', 'pctw_import_new_tweets');
+	add_action('pctw_read_lastest_tweets', 'pctw_import_new_tweets');
+	add_action('pctw_reset_tripdates', 'pctw_set_trip_dates');	
 
 /*---------------------------------------------------------------------------------------------------
 	AJAX CALLS
@@ -94,8 +94,9 @@
 	FILTERS
 ---------------------------------------------------------------------------------------------------*/	
 
-	// add_filter();
-	
+	// Add custom scheduler intervals
+	add_filter( 'cron_schedules', 'pctw_add_schedule_intervals' );
+
 /*---------------------------------------------------------------------------------------------------
 	DECLARE SHORTCODES
 ---------------------------------------------------------------------------------------------------*/	

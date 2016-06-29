@@ -40,7 +40,7 @@
 			}
 	
 			// add timestamp 
-			$logtext = date("d-m-Y H:i:s") . ' - ' . $logtext . "\n"; // \n with double quotes is new line single quotes does not work!
+			$logtext = date_i18n("d-m-Y H:i:s") . ' - ' . $logtext . "\n"; // \n with double quotes is new line single quotes does not work!
 			
 			// Write the contents to the file, 
 			// using the FILE_APPEND flag to append the content to the end of the file
@@ -105,7 +105,7 @@
 	/**
 	 * Get All Tweets
 	 */
-	function pctw_load_all_tweets() {
+	function pctw_load_all_tweets($method = 'since') {
 
 
 	    if (!function_exists('curl_init')) {
@@ -113,17 +113,17 @@
 	        return;
 	    }
 
-
-	    echo '<h1>start import...</h1>';
-
 	    // retrieve the settings
 		$pctw_twitter_account 	= get_option("pctw_setting_twitteraccount", 0);
 		$pctw_addtags 			= get_option("pctw_setting_addtags", 0); 
 		$pctw_consumerkey 		= get_option("pctw_setting_consumer_key", 0);
 		$pctw_consumersecret 	= get_option("pctw_setting_consumer_secret", 0);
 		$pctw_accesstoken 		= get_option("pctw_setting_access_token", 0);
-		$pctw_accesssecret 		= get_option("pctw_setting_access_tokensecret", 0);	    
+		$pctw_accesssecret 		= get_option("pctw_setting_access_tokensecret", 0);
+		$pctw_current_trip_id   = get_option("pctw_current_trip_id", 0);
 
+		// retrieve default tags
+		$pctw_default_tags		= get_option("pctw_setting_addtags" ,0);
 
 	    if (!empty($pctw_consumerkey) && !empty($pctw_consumersecret) && !empty($pctw_accesstoken) && !empty($pctw_accesssecret)) {
 	        $connection = new TwitterOAuth($pctw_consumerkey, $pctw_consumersecret, $pctw_accesstoken, $pctw_accesssecret);
@@ -138,40 +138,77 @@
             'count' => 50
         );
 
-        
-        $lastid = get_option('pctw_last_tweet_id', false);
-        if ($lastid == false) {
-        	//$lastid = pctw_get_latest_tweet();	
-			//$parameters['since_id'] = '0';
-        } else {
-        	$parameters['max_id'] = $lastid;
-        }
-
-        $count = 0;
-
-        //echo '<pre><strong>parameters: </strong> '; var_dump($parameters); echo '</pre>';
-
-        //$dg_tw_data = $connection->get('search/tweets', $parameters);
+		if ($method == 'since') {
+			$sinceid = get_option('pctw_since_tweet_id', false);
+			if ($sinceid == false) {
+				// if the latest since id was not saved in an option get the latest 
+				// tweet id from our database
+				$sinceid = pctw_get_latest_tweetid();
+				if ($sinceid > 0) {
+					$parameters['since_id'] = $sinceid;	
+				}
+			} else {
+				$parameters['since_id'] = $sinceid;
+			}
+		} else {
+        	$lastid = get_option('pctw_last_tweet_id', false);
+	        if ($lastid == false) {
+	        	//$lastid = pctw_get_latest_tweet();	
+				//$parameters['since_id'] = '0';
+	        } else {
+	        	$parameters['max_id'] = $lastid;
+	        }			
+		}     
+	
+		// init counter: this function returns counter to show how many tweets 
+		// have been processed
+	    $count = 0;
         $pctw_feed = $connection->get('statuses/user_timeline', $parameters);
 
-		//echo '<pre><strong>pctw_feed: </strong> '; var_dump($pctw_feed); echo '</pre>';
+		if ($method == 'since') {
+			// reverse the array to be sure the oldest will be read first
+			$pctw_feed = array_reverse($pctw_feed);
+		}
+
+		$b_newtrip = false;
 
 		$goon = true;
         if ($goon) { // check here if object holds any data
 
 	        foreach ($pctw_feed as $thistweet) {
 
-	        	// for debug 
-				pctw_log(print_r($thistweet, true));
+	        	// tweet has been found so add 1 to the counter
 				$count++;
 
+				// debug: log tweet object
+				pctw_log(print_r($thistweet,true));
+
+				// get the basic information for this tweet
 				$tweet_id 			= $thistweet->id_str;
 				$tweet_createdate 	= $thistweet->created_at;
 				$tweet_text			= $thistweet->text;
 
+				// check if the tweet text contains any commands
+				$process_tweet 		= true;
+
+				// check if the command newtrip has been found in this tweet
+				if (substr($tweet_text,0,9) === 'NEWTRIP: ') {
+					// create a new taxonomy trip, set it as current and delete the tweet;
+					$a_termids = wp_insert_term(str_replace('NEWTRIP: ','',$tweet_text),'trip');
+					update_option('pctw_current_trip_id', $a_termids['term_id']);
+
+					// reload new trip id for this batch
+					$pctw_current_trip_id = get_option("pctw_current_trip_id", 0);
+					pctw_log('Write and activate new trip: ' . str_replace('NEWTRIP: ','',$tweet_text));
+					pctw_delete_tweet($tweet_id);
+					$process_tweet = false;
+					$b_newtrip = true;
+				}
+
+
 				// check if there is a post already with this tweet id
 				// if so skip and continue to the next tweet
-				if (!pctw_tweet_exists($tweet_id)) {
+				if (!pctw_tweet_exists($tweet_id) && $process_tweet) {
 
 					$clean_title = $tweet_text;
 					$org_title = $tweet_text;
@@ -235,9 +272,6 @@
 
 					$newformat = date('d-m-Y H:i',strtotime($tweet_createdate));
 
-					echo ' ' . $newformat . ' / ' . $tweet_text . '<br>';
-					echo '<hr>';
-
 					// create the new post array
 					$new_post = array(
 						"post_date" => date('Y-m-d H:i:s',strtotime($tweet_createdate)),
@@ -258,6 +292,14 @@
 					if(isset($tweet_place_geo)) { update_post_meta($new_postid,'tweet_place_geo', $tweet_place_geo[0] . ',' . $tweet_place_geo[1]); }
 					if(isset($location_array)) { update_post_meta($new_postid,'tweet_place_geo_poly', $location_array); }
 					if(isset($org_title)) { update_post_meta($new_postid,'tweet_place_org_title', $org_title); }
+
+					// write the new tweet tags
+					wp_set_post_tags( $new_postid, $pctw_default_tags, true );
+
+					// add the tweet to the current trip-id
+					if ($pctw_current_trip_id !== false) {
+						wp_set_post_terms( $new_postid, $pctw_current_trip_id, 'trip', true );
+					}
 
 					// prepare the image to write (if available)
 					if($tweet_image !== false) {
@@ -304,9 +346,10 @@
 						set_post_thumbnail( $new_postid, $attach_id );
 
 					}
-					echo $count;
 				} else {
-	        		echo '<strong>DOUBLE: </strong>' . $tweet_id . ' - ' . $tweet_text; 
+					if (!$b_newtrip) {
+	        			pctw_log('DOUBLE: #' . $tweet_id . ' - ' . $tweet_text . ' WILL NOT BE WRITTEN'); 
+	        		}
 	       		}
 
 				$lastid = $thistweet->id_str;
@@ -314,12 +357,18 @@
 
 
 	    } else {
-	    	echo 'no tweets found';
+	    	pctw_log('no tweets found since last id');
 	    }
 
         if (strlen(trim($lastid))>0) {
-            update_option('pctw_last_tweet_id', $lastid);
+        	if ($method == 'since') {
+            	update_option('pctw_since_tweet_id', $lastid);
+            } else {
+            	update_option('pctw_last_tweet_id', $lastid);
+            }
         }
+
+        return $count;
 
 	}
 
@@ -365,8 +414,48 @@
         return $pctw_feed[0]->id_str;
 	}
 
+	/**
+	 * Import new tweets
+	 * pctw_import_new_tweets()
+	 * launched by scheduler
+	 */
 	function pctw_import_new_tweets() {
-		pctw_log('Importing new tweets');
+		// load all new tweets since the last
+		pctw_log('Start importing new tweets if available');
+		$nbr_tweets = pctw_load_all_tweets('since');
+		pctw_log($nbr_tweets . ' tweet(s) have been processed');
+	}
+
+	/**
+	 * Correct GEO coordinates in database
+	 */
+	function pctw_correct_coordinates() {
+
+		// Retrieve all tweets
+		$query_args = array( 'post_type' => 'pctw_tweets', 'posts_per_page' => '-1', 'orderby' => 'date', 'order' => 'desc', 'post_status' => 'publish' );
+
+		$tweetsquery = new WP_Query( $query_args );
+
+		if( $tweetsquery->have_posts() ):
+
+	        // start loop
+			while ( $tweetsquery->have_posts() ):
+
+				$tweetsquery->the_post();
+
+				// retrieve meta
+				$s_tweet_place_geo = get_post_meta(get_the_id(),'tweet_place_geo',true);
+				$a_tweet_place_geo = explode(',',$s_tweet_place_geo);
+
+				if ($a_tweet_place_geo[0]<$a_tweet_place_geo[1]) {
+					$place_lat = $a_tweet_place_geo[1];
+					$place_lng = $a_tweet_place_geo[0];
+					update_post_meta(get_the_id(),'tweet_place_geo', $place_lat . ',' . $place_lng);
+					pctw_log('Update geo for post ' . get_the_title());
+				}
+
+			endwhile;
+		endif;
 	}
 
 	/**
@@ -401,6 +490,9 @@
         $count = 0;
 
         $pctw_result = $connection->get('statuses/destroy', $parameters);
+
+        pctw_log('Tweet deleted:');
+        pctw_log(print_r($pctw_result,true));
 
         return;
 	}	
@@ -470,23 +562,23 @@
 /*::         GeoDataSource.com (C) All Rights Reserved 2015		   		     :*/
 /*::                                                                         :*/
 /*::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::*/
-function calc_distance($lat1, $lon1, $lat2, $lon2, $unit) {
+	function calc_distance($lat1, $lon1, $lat2, $lon2, $unit) {
 
-  $theta = $lon1 - $lon2;
-  $dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) +  cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
-  $dist = acos($dist);
-  $dist = rad2deg($dist);
-  $miles = $dist * 60 * 1.1515;
-  $unit = strtoupper($unit);
+	  $theta = $lon1 - $lon2;
+	  $dist = sin(deg2rad($lat1)) * sin(deg2rad($lat2)) +  cos(deg2rad($lat1)) * cos(deg2rad($lat2)) * cos(deg2rad($theta));
+	  $dist = acos($dist);
+	  $dist = rad2deg($dist);
+	  $miles = $dist * 60 * 1.1515;
+	  $unit = strtoupper($unit);
 
-  if ($unit == "K") {
-    return ($miles * 1.609344);
-  } else if ($unit == "N") {
-      return ($miles * 0.8684);
-    } else {
-        return $miles;
-      }
-}	
+	  if ($unit == "K") {
+	    return ($miles * 1.609344);
+	  } else if ($unit == "N") {
+	      return ($miles * 0.8684);
+	    } else {
+	        return $miles;
+	      }
+	}	
 
 	/**
 	 * Check if a Tweet ID already has been stored
@@ -505,4 +597,77 @@ function calc_distance($lat1, $lon1, $lat2, $lon2, $unit) {
 		return $tweet_exists;
 
 	}
+
+	/**
+	 * Retrieve the latest tweet id in the database
+	 */
+	function pctw_get_latest_tweetid() {
+
+		global $wpdb;
+
+		$gettweet_query = "SELECT meta_value FROM $wpdb->postmeta WHERE meta_key='tweet_id' ORDER BY 'tweet_id' DESC LIMIT 1";
+
+		$latest_tweet_id = $wpdb->get_var( $wpdb->prepare( $gettweet_query ) );
+		$wpdb->flush();
+
+		if (is_null($latest_tweet_id)) { $latest_tweet_id = 0; }
+
+		return $latest_tweet_id;
+	}
+
+	/**
+	 * Find start and enddates for all trips
+	 */
+	function pctw_set_trip_dates() {
+		$all_trips = get_terms( 'trip', array('hide_empty' => true,) );
+
+		//echo '<pre>'; var_dump($all_trips); echo '</pre>';
+		foreach($all_trips as $current_trip) {
+			$from_date = pctw_get_tweet_in_term_date($current_trip->term_id,'oldest');
+			update_term_meta($current_trip->term_id, 'pctw_term_meta_date_from', $from_date);
+			$until_date = pctw_get_tweet_in_term_date($current_trip->term_id,'newest');
+			update_term_meta($current_trip->term_id, 'pctw_term_meta_date_until', $until_date);
+		}
+	}
+
+	/**
+	 * Get the oldest / newest date from tweets belonging to a term
+	 */
+	function pctw_get_tweet_in_term_date($termid, $tweet_age = 'oldest') {
+		global $wpdb;
+
+		if($tweet_age == 'oldest') {
+			$sortorder = 'ASC';
+		} else {
+			$sortorder = 'DESC';
+		}
+
+		$getdate_query = "SELECT aev_posts.post_date
+			FROM aev_posts INNER JOIN aev_term_relationships ON aev_posts.ID = aev_term_relationships.object_id
+	 		INNER JOIN aev_terms ON aev_term_relationships.term_taxonomy_id = aev_terms.term_id
+	 		INNER JOIN aev_term_taxonomy ON aev_term_relationships.term_taxonomy_id = aev_term_taxonomy.term_taxonomy_id
+			WHERE (aev_term_taxonomy.taxonomy = 'trip' AND aev_term_taxonomy.term_id = " . $termid . ") ORDER BY aev_posts.post_date " . $sortorder . " LIMIT 1";
+
+		$founddate = $wpdb->get_var( $wpdb->prepare( $getdate_query ) );
+		$wpdb->flush();
+
+		return $founddate;
+	}
+
+	/**
+	 * Add some custom cron schedule time intervals
+	 */
+	function pctw_add_schedule_intervals( $schedules ) {
+	 
+	    $schedules['every_five_minutes'] = array(
+	            'interval'  => 300,
+	            'display'   => __( 'Every 5 Minutes', 'pctw' )
+	    );
+	    $schedules['every_fifteen_minutes'] = array(
+	            'interval'  => 900,
+	            'display'   => __( 'Every 15 Minutes', 'pctw' )
+	    );	    
+	     
+	    return $schedules;
+	}	
 ?>

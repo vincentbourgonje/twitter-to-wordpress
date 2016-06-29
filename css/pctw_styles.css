@@ -1,3 +1,6 @@
+h1, h2, h3, h4, h5, h6 { font-weight: 700; }
+h2, h3, h4, h5, h6 { width: 100%; }
+
 .pctw_year {
 	display: block; text-align: center; font-weight: 800; font-size: 150%; width: 100%; flex: 1;
 }
@@ -15,6 +18,8 @@
 	flex-wrap: wrap;
 	flex-direction: row;
 }
+.pctw_tweetslist:after { clear: both; content: " "; display: block; }
+
 
 .pctw_tweet {
 	flex: 1;
@@ -30,16 +35,77 @@
 }
 .pctw_tweet > a > img.tweetimage { width: 100%; height: auto; }
 .pctw_tweet > p { padding: 10px; }
+.pctw_tweet a.morebtn {
+	color: white;
+	background-color: #926C9E;
+	padding: 2px 4px;
+	border: 1px solid transparent;
+	border-radius: 3px;
+}
+.pctw_tweet a.morebtn:hover {
+	color: #926C9E;
+	background-color: #FFFFFF;
+	padding: 2px 4px;
+	border: 1px solid #926C9E;
+	border-radius: 3px;
+}
+
+ul.pctw_trip_list {
+	display: flex;
+	flex-wrap: wrap;
+	flex-direction: row;
+}
+ul.pctw_trip_list li.pctw_trip_item {
+	background-color: #a0c66e;
+	color: #fff;
+	flex: 1;
+	width: 29%;
+	max-width: 29%;
+	flex-grow: 1;
+	flex-basis: 29%;
+	margin: 2%;
+	padding: 15px;
+	font-size: 150%;
+	position: relative;
+}
+span.current_trip {
+	position: absolute;
+	top: 0;
+	right: 0;
+	font-size: 13px; 
+	color: #fff;
+	background-color: rgba(213, 107, 97, 0.8);
+	padding: 5px 10px;
+	font-weight: 800;
+}
+ul.pctw_trip_list li.pctw_trip_item .pctw_trip_meta {
+	font-size: 1.25rem; color: #333;
+}
+ul.pctw_trip_list li.pctw_trip_item a {
+	color: #fff; text-decoration: none; display: block;
+}
+ul.pctw_trip_list li.pctw_trip_item a:hover {
+	color: #333;
+}
+
+#map_wrapper {
+    height: 400px;
+}
+
+#map_canvas {
+    width: 100%;
+    height: 100%;
+}
 
 @media only screen and (max-width: 768px) {
-	.pctw_tweet {
+	.pctw_tweet, ul.pctw_trip_list li.pctw_trip_item {
 		max-width: 46%;
 		flex-basis: 46%;
 	}
 }
 
 @media only screen and (max-width: 481px) {
-	.pctw_tweet {
+	.pctw_tweet, ul.pctw_trip_list li.pctw_trip_item {
 		max-width: 96%;
 		flex-basis: 96%;
 	}

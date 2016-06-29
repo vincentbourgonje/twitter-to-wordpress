@@ -70,15 +70,15 @@
 		$t_id = $tag->term_id; // Get the ID of the term you're editing
 
 		$field_id = $prefix . 'sortorder';
-		$field_value = get_term_meta( $t_id, $field_id, true);
+		$field_value = get_term_meta( $t_id, 'pctw_term_meta_sortorder', true);
 		echo pctw_add_meta_field('text', 'Sorteervolgorde', $field_id, $field_value, 'Voer een getal in om op te sorteren');
 
 		$field_id = $prefix . 'date_from';
-		$field_value = get_term_meta( $t_id, $field_id, true);
+		$field_value = get_term_meta( $t_id, 'pctw_term_meta_date_from', true);
 		echo pctw_add_meta_field('date', 'Datum vanaf', $field_id, $field_value, 'Datum dat de trip begon');
 
 		$field_id = $prefix . 'date_until';
-		$field_value = get_term_meta( $t_id, $field_id, true);
+		$field_value = get_term_meta( $t_id, 'pctw_term_meta_date_until', true);
 		echo pctw_add_meta_field('date', 'Datum t/m', $field_id, $field_value, 'Datum dat de trip was afgelopen');				
 
 	}
@@ -118,7 +118,7 @@
 
 		if($fieldtype !== 'date') { $date_parms = ''; }
 
-		$return_html .= '<input type="' . $fieldtype . '" name="' . $fieldid . '" id="' . $fieldid . '" size="25" style="width:60%;" value="' . $fieldvalue . '"' . $date_parms . '>';
+		$return_html .= '<input  name="' . $fieldid . '" id="' . $fieldid . '" size="25" style="width:60%;" value="' . $fieldvalue . '"' . $date_parms . '>';
 		if (strlen(trim($fielddesc))>0) {
 			$return_html .= '<br><span class="description">' . $fielddesc . '</span>';
 		}

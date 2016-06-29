@@ -15,7 +15,9 @@
 
 		if ( !empty($_POST["issubmitted"]) ) {
 
-			
+
+			//debug
+			//echo '<pre>'; var_dump($_POST); echo '</pre>';			
 
 			// if form has been submitted save the options
 			if ( !empty($_POST["twitteraccount"]) ) { update_option("pctw_setting_twitteraccount", trim($_POST["twitteraccount"]), false); }
